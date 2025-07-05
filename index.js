@@ -1,46 +1,47 @@
-const WebSocket = require("ws");
-const http = require("http");
+import express from "express";
+import http from "http";
+import { WebSocketServer } from "ws";
 
-// Создаем HTTP-сервер для WebSocket
-const server = http.createServer();
-const wss = new WebSocket.Server({ server });
+const app = express();
+const server = http.createServer(app);
+const PORT = process.env.PORT || 3000;
 
-// Обработка подключений
+// Создаем WebSocket-сервер
+const wss = new WebSocketServer({ server });
+
+// Обработчик подключений WebSocket
 wss.on("connection", (ws) => {
-  console.log("Новое подключение");
+  console.log("🟢 Новое подключение");
 
-  // Отправка сообщения клиенту
-  ws.send(
-    JSON.stringify({
-      type: "welcome",
-      message: "Добро пожаловать в WebSocket сервер!",
-    })
-  );
+  // Отправляем приветствие новому клиенту
+  ws.send("Добро пожаловать в WebSocket-чат!");
 
   // Обработка сообщений от клиента
   ws.on("message", (data) => {
-    console.log("Получено сообщение:", data.toString());
+    const message = data.toString();
+    console.log(`📩 Получено: ${message}`);
 
     // Рассылка сообщения всем подключенным клиентам
     wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(
-          JSON.stringify({
-            type: "broadcast",
-            message: `Клиент сказал: ${data.toString()}`,
-          })
-        );
+      if (client.readyState === WebSocketServer.OPEN) {
+        client.send(`Сообщение: ${message}`);
       }
     });
   });
 
-  // Обработка отключения
+  // Обработка закрытия соединения
   ws.on("close", () => {
-    console.log("Клиент отключен");
+    console.log("🔴 Соединение закрыто");
   });
 });
 
-const PORT = 8080;
+// Маршрут для проверки работоспособности (требуется Render.com)
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
+// Старт сервера
 server.listen(PORT, () => {
-  console.log(`WebSocket сервер запущен на порту ${PORT}`);
+  console.log(`🚀 Сервер запущен на порту ${PORT}`);
+  console.log(`🔌 WebSocket доступен по адресу: ws://localhost:${PORT}`);
 });
